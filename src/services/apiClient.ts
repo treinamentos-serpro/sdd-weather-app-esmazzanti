@@ -50,7 +50,12 @@ export async function requestJson<T>(url: string, options: RequestOptions = {}):
     }
 
     if (error instanceof TypeError) {
-      throw buildApiError(503, 'Falha de conexão com o servidor');
+      throw {
+        type: 'network',
+        message: 'Falha de conexão com o servidor. Tente novamente.',
+        recoverable: true,
+        canRetry: true,
+      } satisfies ApiError;
     }
 
     throw buildApiError(500, 'Erro ao processar a resposta');

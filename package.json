@@ -13,7 +13,7 @@
     "lint": "biome lint ./src ./tests",
     "format": "biome format --write ./src ./tests",
     "check": "biome check ./src ./tests",
-    "test": "vitest run",
+    "test": "vitest run && playwright test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
