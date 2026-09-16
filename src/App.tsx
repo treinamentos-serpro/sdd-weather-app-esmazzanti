@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import FooterAttribution from './components/FooterAttribution';
 import SearchForm from './components/SearchForm';
 import SearchResults from './components/SearchResults';
@@ -20,6 +20,10 @@ export default function App() {
   const weatherQuery = useWeatherQuery({ city: selectedCity, unit });
 
   const validationError = useMemo(() => validateSearchText(query), [query]);
+
+  const handleCitySelect = useCallback((city: City) => {
+    setSelectedCity(city);
+  }, []);
 
   const handleSubmit = () => {
     if (validationError) {
@@ -60,10 +64,9 @@ export default function App() {
           />
           <SearchResults
             results={results}
+            loading={loading}
             empty={empty}
-            onSelectCity={(city) => {
-              setSelectedCity(city);
-            }}
+            onSelectCity={handleCitySelect}
           />
         </div>
 
@@ -72,7 +75,7 @@ export default function App() {
         ) : null}
 
         {selectedCity ? (
-          <div aria-live="polite">
+          <div aria-live="polite" aria-busy={weatherQuery.loading}>
             {weatherQuery.loading ? (
               <StatusMessage message="Carregando previsão do tempo..." />
             ) : null}

@@ -16,6 +16,11 @@ describe('estados dos componentes', () => {
       />,
     );
 
+    expect(screen.getByRole('form', { name: 'Busca por cidade' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Buscando cidades');
     expect(screen.getByRole('button', { name: 'Buscando...' })).toBeDisabled();
   });
 

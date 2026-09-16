@@ -65,5 +65,7 @@ describe('search validation and flow', () => {
     await waitFor(() => {
       expect(screen.getAllByRole('button', { name: /selecionar são paulo/i })).toHaveLength(2);
     });
+
+    expect(screen.getAllByRole('button', { name: /selecionar são paulo/i })[0]).toHaveFocus();
   });
 });
