@@ -83,7 +83,9 @@ export default function WeatherCurrent({ weather }: WeatherCurrentProps) {
         </div>
         <div>
           <dt className="text-slate-400">Atualizado em</dt>
-          <dd className="mt-1 font-medium text-white">{formatUpdatedAt(weather.fetchedAt)}</dd>
+          <dd className="mt-1 font-medium text-white">
+            {weather.timezone ? formatUpdatedAt(weather.fetchedAt) : unavailableLabel}
+          </dd>
         </div>
       </dl>
     </section>

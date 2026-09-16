@@ -9,16 +9,17 @@ interface RequestOptions {
 export async function requestJson<T>(url: string, options: RequestOptions = {}): Promise<T> {
   const timeoutMs = options.timeoutMs ?? 8000;
   const controller = new AbortController();
+  const abortExternalRequest = () => controller.abort();
+
+  options.signal?.addEventListener('abort', abortExternalRequest, { once: true });
 
   const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const signal = options.signal ?? controller.signal;
-
     const response = await fetch(url, {
       method: 'GET',
       headers: { Accept: 'application/json', ...(options.headers ?? {}) },
-      signal,
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -55,9 +56,8 @@ export async function requestJson<T>(url: string, options: RequestOptions = {}):
     throw buildApiError(500, 'Erro ao processar a resposta');
   } finally {
     globalThis.clearTimeout(timeoutId);
-    if (options.signal === undefined) {
-      controller.abort();
-    }
+    options.signal?.removeEventListener('abort', abortExternalRequest);
+    controller.abort();
   }
 }
 
@@ -95,7 +95,7 @@ function buildApiError(statusCode: number, message: string): ApiError {
   if (statusCode >= 400) {
     return {
       type: 'http',
-      message: message || 'Não foi possível completar a consulta.',
+      message: 'Não foi possível consultar a previsão. Verifique a cidade e tente novamente.',
       recoverable: false,
       canRetry: false,
       statusCode,

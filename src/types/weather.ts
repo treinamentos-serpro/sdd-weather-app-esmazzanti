@@ -36,6 +36,7 @@ export interface WeatherData {
   current: CurrentWeather;
   forecast: ForecastDay[];
   fetchedAt: string;
+  timezone?: string | null;
   isStale: boolean;
   staleReason?: string;
 }

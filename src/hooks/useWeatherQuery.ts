@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchWeatherForCity } from '../services/weatherService';
+import type { ApiError } from '../types/api';
 import type { City, Unit, WeatherData } from '../types/weather';
 
 interface UseWeatherQueryParams {
-  city: City;
+  city: City | null;
   unit: Unit;
 }
 
@@ -11,7 +12,7 @@ interface UseWeatherQueryState {
   weather: WeatherData | null;
   loading: boolean;
   success: boolean;
-  error: string | null;
+  error: ApiError | null;
   empty: boolean;
   stale: boolean;
 }
@@ -29,6 +30,31 @@ function isStaleData(weather: WeatherData): boolean {
   return ageMs >= 10 * 60 * 1000 && ageMs < 60 * 60 * 1000;
 }
 
+function isUsableWeather(weather: WeatherData): boolean {
+  const fetchedAt = new Date(weather.fetchedAt).getTime();
+  return Number.isFinite(fetchedAt) && Date.now() - fetchedAt < 60 * 60 * 1000;
+}
+
+function toApiError(error: unknown): ApiError {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'type' in error &&
+    'message' in error &&
+    'recoverable' in error &&
+    'canRetry' in error
+  ) {
+    return error as ApiError;
+  }
+
+  return {
+    type: 'unknown',
+    message: error instanceof Error ? error.message : 'Erro ao carregar o clima.',
+    recoverable: true,
+    canRetry: true,
+  };
+}
+
 function getCachedWeather(city: City, unit: Unit): WeatherData | null {
   return weatherCache.get(getWeatherCacheKey(city, unit)) ?? null;
 }
@@ -43,9 +69,25 @@ export function useWeatherQuery({ city, unit }: UseWeatherQueryParams) {
     stale: false,
   });
   const requestIdRef = useRef(0);
+  const controllerRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(
     async (force = false) => {
+      if (!city) {
+        controllerRef.current?.abort();
+        requestIdRef.current += 1;
+        setState({
+          weather: null,
+          loading: false,
+          success: false,
+          error: null,
+          empty: true,
+          stale: false,
+        });
+        return;
+      }
+
+      controllerRef.current?.abort();
       const cacheKey = getWeatherCacheKey(city, unit);
       const cachedWeather = getCachedWeather(city, unit);
 
@@ -81,6 +123,8 @@ export function useWeatherQuery({ city, unit }: UseWeatherQueryParams) {
 
       const nextRequestId = requestIdRef.current + 1;
       requestIdRef.current = nextRequestId;
+      const controller = new AbortController();
+      controllerRef.current = controller;
 
       setState((currentState) => ({
         ...currentState,
@@ -91,9 +135,26 @@ export function useWeatherQuery({ city, unit }: UseWeatherQueryParams) {
       }));
 
       try {
-        const weather = await fetchWeatherForCity(city, unit);
+        const weather = await fetchWeatherForCity(city, unit, controller.signal);
 
         if (nextRequestId !== requestIdRef.current) {
+          return;
+        }
+
+        if (!isUsableWeather(weather)) {
+          setState({
+            weather: null,
+            loading: false,
+            success: false,
+            error: {
+              type: 'unknown',
+              message: 'Os dados meteorológicos estão desatualizados. Tente novamente.',
+              recoverable: true,
+              canRetry: true,
+            },
+            empty: true,
+            stale: false,
+          });
           return;
         }
 
@@ -113,13 +174,15 @@ export function useWeatherQuery({ city, unit }: UseWeatherQueryParams) {
         }
 
         const fallbackWeather = getCachedWeather(city, unit);
+        const usableFallback =
+          fallbackWeather && isUsableWeather(fallbackWeather) ? fallbackWeather : null;
         setState({
-          weather: fallbackWeather,
+          weather: usableFallback,
           loading: false,
           success: false,
-          error: error instanceof Error ? error.message : 'Erro ao carregar clima.',
-          empty: fallbackWeather === null,
-          stale: fallbackWeather ? isStaleData(fallbackWeather) : false,
+          error: toApiError(error),
+          empty: usableFallback === null,
+          stale: usableFallback ? isStaleData(usableFallback) : false,
         });
       }
     },
@@ -128,6 +191,10 @@ export function useWeatherQuery({ city, unit }: UseWeatherQueryParams) {
 
   useEffect(() => {
     void refresh(false);
+    return () => {
+      requestIdRef.current += 1;
+      controllerRef.current?.abort();
+    };
   }, [refresh]);
 
   return useMemo(

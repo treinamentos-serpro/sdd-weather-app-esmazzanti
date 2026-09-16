@@ -6,6 +6,6 @@ describe('App shell', () => {
     render(<App />);
 
     expect(screen.getByRole('heading', { name: /sdd weather app/i })).toBeInTheDocument();
-    expect(screen.getByText(/previsão do tempo/i)).toBeInTheDocument();
+    expect(screen.getByText('Previsão do tempo')).toBeInTheDocument();
   });
 });

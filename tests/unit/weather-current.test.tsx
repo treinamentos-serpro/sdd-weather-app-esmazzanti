@@ -25,6 +25,7 @@ const weather: WeatherData = {
   },
   forecast: [],
   fetchedAt: '2026-09-16T12:00:00Z',
+  timezone: 'America/Sao_Paulo',
   isStale: false,
 };
 
@@ -89,5 +90,11 @@ describe('WeatherCurrent', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows unavailable update time when timezone is missing', () => {
+    render(<WeatherCurrent weather={{ ...weather, timezone: null }} />);
+
+    expect(screen.getByText('Indisponível')).toBeInTheDocument();
   });
 });

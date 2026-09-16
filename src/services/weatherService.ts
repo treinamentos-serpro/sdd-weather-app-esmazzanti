@@ -23,7 +23,11 @@ interface OpenMeteoForecastResponse {
 
 const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast';
 
-export async function fetchWeatherForCity(city: City, unit: Unit): Promise<WeatherData> {
+export async function fetchWeatherForCity(
+  city: City,
+  unit: Unit,
+  signal?: AbortSignal,
+): Promise<WeatherData> {
   const params = new URLSearchParams({
     latitude: String(city.latitude),
     longitude: String(city.longitude),
@@ -38,6 +42,7 @@ export async function fetchWeatherForCity(city: City, unit: Unit): Promise<Weath
     `${WEATHER_URL}?${params.toString()}`,
     {
       timeoutMs: 8000,
+      signal,
     },
   );
 
@@ -79,6 +84,7 @@ export async function fetchWeatherForCity(city: City, unit: Unit): Promise<Weath
     current: currentWeather,
     forecast,
     fetchedAt: new Date().toISOString(),
+    timezone: payload.timezone ?? null,
     isStale: false,
   };
 }

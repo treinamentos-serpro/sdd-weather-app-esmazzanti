@@ -9,7 +9,10 @@ interface SearchResultsProps {
 export default function SearchResults({ results, empty, onSelectCity }: SearchResultsProps) {
   if (empty) {
     return (
-      <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+      <div
+        className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300"
+        role="status"
+      >
         Nenhuma cidade encontrada para a busca informada.
       </div>
     );
